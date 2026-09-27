@@ -1,0 +1,27 @@
+#include <iostream>
+#include <stack>
+using namespace std;
+
+int main()
+{
+    stack<int> s;
+    int order;
+
+    cout << "Enter 5 cancelled order numbers:\n";
+
+    for (int i = 0; i < 5; i++)
+    {
+        cin >> order;
+        s.push(order);
+    }
+
+    cout << "\nCancelled orders:\n";
+
+    while (!s.empty())
+    {
+        cout << s.top() << endl;
+        s.pop();
+    }
+
+    return 0;
+}
