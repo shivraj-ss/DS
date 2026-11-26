@@ -1,0 +1,116 @@
+// Assignment 3: Smart Grocery Inventory Management System (Arrays, Searching, Sorting)
+#include <iostream>
+#include <string>
+using namespace std;
+
+struct Product { int id; string name, category; float price; int qty; int expiry; /* YYYYMMDD */ };
+const int MAX = 100;
+Product p[MAX];
+int n = 0;
+
+string readLine(const string& s) { cout << s; string x; getline(cin >> ws, x); return x; }
+
+// Quick Sort by price
+int part(Product a[], int l, int h) {
+    float pv = a[h].price; int i = l - 1;
+    for (int j = l; j < h; j++) if (a[j].price < pv) { i++; swap(a[i], a[j]); }
+    swap(a[i + 1], a[h]); return i + 1;
+}
+void quickSortPrice(Product a[], int l, int h) {
+    if (l < h) { int q = part(a, l, h); quickSortPrice(a, l, q - 1); quickSortPrice(a, q + 1, h); }
+}
+// Merge Sort by quantity
+void mergeSortQty(Product a[], int l, int r) {
+    if (l >= r) return;
+    int m = (l + r) / 2;
+    mergeSortQty(a, l, m); mergeSortQty(a, m + 1, r);
+    Product t[MAX]; int i = l, j = m + 1, k = 0;
+    while (i <= m && j <= r) t[k++] = (a[i].qty <= a[j].qty) ? a[i++] : a[j++];
+    while (i <= m) t[k++] = a[i++];
+    while (j <= r) t[k++] = a[j++];
+    for (k = 0, i = l; i <= r; i++, k++) a[i] = t[k];
+}
+// Insertion Sort by expiry date
+void insertionSortExpiry() {
+    for (int i = 1; i < n; i++) {
+        Product k = p[i]; int j = i - 1;
+        while (j >= 0 && p[j].expiry > k.expiry) { p[j + 1] = p[j]; j--; }
+        p[j + 1] = k;
+    }
+}
+void sortById() {
+    for (int i = 1; i < n; i++) {
+        Product k = p[i]; int j = i - 1;
+        while (j >= 0 && p[j].id > k.id) { p[j + 1] = p[j]; j--; }
+        p[j + 1] = k;
+    }
+}
+int linearSearchId(int id) { for (int i = 0; i < n; i++) if (p[i].id == id) return i; return -1; }
+int linearSearchName(const string& nm) { for (int i = 0; i < n; i++) if (p[i].name == nm) return i; return -1; }
+int binarySearchId(int id) {
+    sortById();
+    int l = 0, h = n - 1;
+    while (l <= h) {
+        int m = (l + h) / 2;
+        if (p[m].id == id) return m;
+        if (p[m].id < id) l = m + 1; else h = m - 1;
+    }
+    return -1;
+}
+void show(const Product& x) {
+    cout << x.id << " | " << x.name << " | " << x.category << " | Rs." << x.price
+         << " | Qty:" << x.qty << " | Exp:" << x.expiry << "\n";
+}
+void display() {
+    if (!n) { cout << "Inventory empty.\n"; return; }
+    for (int i = 0; i < n; i++) show(p[i]);
+}
+void addProduct() {
+    if (n == MAX) { cout << "Full!\n"; return; }
+    Product x; cout << "Product ID: "; cin >> x.id;
+    if (linearSearchId(x.id) != -1) { cout << "Duplicate ID!\n"; return; }
+    x.name = readLine("Name: "); x.category = readLine("Category: ");
+    cout << "Price: "; cin >> x.price;
+    cout << "Quantity: "; cin >> x.qty;
+    cout << "Expiry (YYYYMMDD): "; cin >> x.expiry;
+    p[n++] = x;
+}
+void updateProduct() {
+    int id; cout << "Product ID: "; cin >> id;
+    int i = linearSearchId(id);
+    if (i == -1) { cout << "Not found.\n"; return; }
+    cout << "New Price: "; cin >> p[i].price;
+    cout << "New Quantity: "; cin >> p[i].qty;
+    cout << "New Expiry (YYYYMMDD): "; cin >> p[i].expiry;
+}
+void deleteProduct() {
+    int id; cout << "Product ID: "; cin >> id;
+    int i = linearSearchId(id);
+    if (i == -1) { cout << "Not found.\n"; return; }
+    for (int j = i; j < n - 1; j++) p[j] = p[j + 1];
+    n--;
+}
+
+int main() {
+    int ch;
+    do {
+        cout << "\n=== GROCERY INVENTORY ===\n1.Add\n2.Update\n3.Delete\n4.Display\n"
+                "5.Search by ID (Binary)\n6.Search by Name (Linear)\n7.Sort by Price (Quick)\n"
+                "8.Sort by Quantity (Merge)\n9.Sort by Expiry (Insertion)\n0.Exit\nChoice: ";
+        cin >> ch;
+        switch (ch) {
+            case 1: addProduct(); break;
+            case 2: updateProduct(); break;
+            case 3: deleteProduct(); break;
+            case 4: display(); break;
+            case 5: { int id; cout << "ID: "; cin >> id; int i = binarySearchId(id);
+                      if (i == -1) cout << "Not found.\n"; else show(p[i]); break; }
+            case 6: { string nm = readLine("Name: "); int i = linearSearchName(nm);
+                      if (i == -1) cout << "Not found.\n"; else show(p[i]); break; }
+            case 7: quickSortPrice(p, 0, n - 1); display(); break;
+            case 8: mergeSortQty(p, 0, n - 1); display(); break;
+            case 9: insertionSortExpiry(); display(); break;
+        }
+    } while (ch != 0);
+    return 0;
+}
