@@ -1,0 +1,109 @@
+// Assignment 1: Smart Library Book Management System (Arrays, Searching, Sorting)
+#include <iostream>
+#include <string>
+using namespace std;
+
+struct Book { int id; string title, dept; bool available; };
+const int MAX = 100;
+Book lib[MAX];
+int n = 0;
+
+string readLine(const string& p) { cout << p; string s; getline(cin >> ws, s); return s; }
+
+void sortById() {                       // Insertion Sort
+    for (int i = 1; i < n; i++) {
+        Book k = lib[i]; int j = i - 1;
+        while (j >= 0 && lib[j].id > k.id) { lib[j + 1] = lib[j]; j--; }
+        lib[j + 1] = k;
+    }
+}
+void sortByTitle() {                    // Bubble Sort
+    for (int i = 0; i < n - 1; i++)
+        for (int j = 0; j < n - i - 1; j++)
+            if (lib[j].title > lib[j + 1].title) swap(lib[j], lib[j + 1]);
+}
+int linearSearchTitle(const string& t) {
+    for (int i = 0; i < n; i++) if (lib[i].title == t) return i;
+    return -1;
+}
+int binarySearchId(int id) {            // needs sorted array
+    sortById();
+    int l = 0, h = n - 1;
+    while (l <= h) {
+        int m = (l + h) / 2;
+        if (lib[m].id == id) return m;
+        if (lib[m].id < id) l = m + 1; else h = m - 1;
+    }
+    return -1;
+}
+void show(const Book& b) {
+    cout << b.id << " | " << b.title << " | " << b.dept << " | "
+         << (b.available ? "Available" : "Issued") << "\n";
+}
+void displayAll() {
+    if (!n) { cout << "No books.\n"; return; }
+    for (int i = 0; i < n; i++) show(lib[i]);
+}
+void insertBook() {
+    if (n == MAX) { cout << "Library full!\n"; return; }
+    Book b; cout << "Book ID: "; cin >> b.id;
+    if (binarySearchId(b.id) != -1) { cout << "Duplicate ID!\n"; return; }
+    b.title = readLine("Title: ");
+    b.dept = readLine("Department: ");
+    b.available = true;
+    lib[n++] = b;
+    cout << "Book added.\n";
+}
+void deleteBook() {
+    int id; cout << "Book ID to delete: "; cin >> id;
+    int i = binarySearchId(id);
+    if (i == -1) { cout << "Not found.\n"; return; }
+    for (int j = i; j < n - 1; j++) lib[j] = lib[j + 1];
+    n--;
+    cout << "Deleted.\n";
+}
+void availableReport() {
+    cout << "--- Available Books ---\n";
+    for (int i = 0; i < n; i++) if (lib[i].available) show(lib[i]);
+}
+void deptWise() {
+    for (int i = 0; i < n; i++) {
+        bool seen = false;
+        for (int j = 0; j < i; j++) if (lib[j].dept == lib[i].dept) seen = true;
+        if (seen) continue;
+        cout << "[" << lib[i].dept << "]\n";
+        for (int k = 0; k < n; k++) if (lib[k].dept == lib[i].dept) show(lib[k]);
+    }
+}
+void issueReturn() {
+    int id; cout << "Book ID: "; cin >> id;
+    int i = binarySearchId(id);
+    if (i == -1) { cout << "Not found.\n"; return; }
+    lib[i].available = !lib[i].available;
+    cout << (lib[i].available ? "Book returned.\n" : "Book issued.\n");
+}
+
+int main() {
+    int ch;
+    do {
+        cout << "\n===== SMART LIBRARY =====\n1.Add Book\n2.Delete Book\n3.Search by ID (Binary)\n"
+                "4.Search by Title (Linear)\n5.Sort by ID\n6.Sort by Title\n7.Display All\n"
+                "8.Available Books Report\n9.Department-wise Display\n10.Issue/Return Book\n0.Exit\nChoice: ";
+        cin >> ch;
+        switch (ch) {
+            case 1: insertBook(); break;
+            case 2: deleteBook(); break;
+            case 3: { int id; cout << "ID: "; cin >> id; int i = binarySearchId(id);
+                      if (i == -1) cout << "Not found.\n"; else show(lib[i]); break; }
+            case 4: { string t = readLine("Title: "); int i = linearSearchTitle(t);
+                      if (i == -1) cout << "Not found.\n"; else show(lib[i]); break; }
+            case 5: sortById(); displayAll(); break;
+            case 6: sortByTitle(); displayAll(); break;
+            case 7: displayAll(); break;
+            case 8: availableReport(); break;
+            case 9: deptWise(); break;
+            case 10: issueReturn(); break;
+        }
+    } while (ch != 0);
+    return 0;
+}
