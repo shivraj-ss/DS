@@ -1,0 +1,143 @@
+// Assignment 10: Smart File and Folder Management System
+// Tree (directory structure) + BST (files per folder) + 4 Traversals + Binary Heap (priority tasks)
+#include <iostream>
+#include <string>
+#include <vector>
+#include <queue>
+using namespace std;
+
+// ---------- BST for files ----------
+struct FNode { string name; int size; FNode *l, *r; };
+FNode* insertFile(FNode* t, const string& n, int s) {
+    if (!t) return new FNode{n, s, nullptr, nullptr};
+    if (n < t->name) t->l = insertFile(t->l, n, s);
+    else if (n > t->name) t->r = insertFile(t->r, n, s);
+    else cout << "File already exists!\n";
+    return t;
+}
+FNode* minNode(FNode* t) { while (t->l) t = t->l; return t; }
+FNode* deleteFile(FNode* t, const string& n) {
+    if (!t) { cout << "File not found.\n"; return t; }
+    if (n < t->name) t->l = deleteFile(t->l, n);
+    else if (n > t->name) t->r = deleteFile(t->r, n);
+    else {
+        if (!t->l) { FNode* x = t->r; delete t; return x; }
+        if (!t->r) { FNode* x = t->l; delete t; return x; }
+        FNode* m = minNode(t->r);
+        t->name = m->name; t->size = m->size;
+        t->r = deleteFile(t->r, m->name);
+    }
+    return t;
+}
+FNode* searchFile(FNode* t, const string& n) {
+    if (!t || t->name == n) return t;
+    return n < t->name ? searchFile(t->l, n) : searchFile(t->r, n);
+}
+void preorder(FNode* t)  { if (t) { cout << t->name << " "; preorder(t->l); preorder(t->r); } }
+void inorder(FNode* t)   { if (t) { inorder(t->l); cout << t->name << " "; inorder(t->r); } }
+void postorder(FNode* t) { if (t) { postorder(t->l); postorder(t->r); cout << t->name << " "; } }
+void levelorder(FNode* t) {
+    if (!t) return;
+    queue<FNode*> q; q.push(t);
+    while (!q.empty()) {
+        FNode* c = q.front(); q.pop(); cout << c->name << " ";
+        if (c->l) q.push(c->l);
+        if (c->r) q.push(c->r);
+    }
+}
+
+// ---------- Directory Tree ----------
+struct Folder { string name; vector<Folder*> kids; FNode* files = nullptr; Folder(string n) : name(n) {} };
+Folder* root = new Folder("root");
+
+Folder* findFolder(Folder* f, const string& n) {
+    if (f->name == n) return f;
+    for (Folder* k : f->kids) if (Folder* r = findFolder(k, n)) return r;
+    return nullptr;
+}
+bool removeFolder(Folder* f, const string& n) {
+    for (size_t i = 0; i < f->kids.size(); i++) {
+        if (f->kids[i]->name == n) { f->kids.erase(f->kids.begin() + i); return true; }
+        if (removeFolder(f->kids[i], n)) return true;
+    }
+    return false;
+}
+void dirPreorder(Folder* f, int d) {
+    cout << string(d * 2, ' ') << f->name << "/\n";
+    for (Folder* k : f->kids) dirPreorder(k, d + 1);
+}
+void dirPostorder(Folder* f) { for (Folder* k : f->kids) dirPostorder(k); cout << f->name << " "; }
+void dirLevel(Folder* f) {
+    queue<Folder*> q; q.push(f);
+    while (!q.empty()) {
+        Folder* c = q.front(); q.pop(); cout << c->name << " ";
+        for (Folder* k : c->kids) q.push(k);
+    }
+}
+
+// ---------- Max Binary Heap for tasks ----------
+struct Task { string name; int pr; };
+Task heapArr[100]; int hs = 0;
+void pushTask(const Task& t) {
+    int i = hs++; heapArr[i] = t;
+    while (i > 0 && heapArr[(i - 1) / 2].pr < heapArr[i].pr) { swap(heapArr[i], heapArr[(i - 1) / 2]); i = (i - 1) / 2; }
+}
+bool popTask(Task& out) {
+    if (!hs) return false;
+    out = heapArr[0]; heapArr[0] = heapArr[--hs];
+    int i = 0;
+    while (true) {
+        int l = 2 * i + 1, r = 2 * i + 2, m = i;
+        if (l < hs && heapArr[l].pr > heapArr[m].pr) m = l;
+        if (r < hs && heapArr[r].pr > heapArr[m].pr) m = r;
+        if (m == i) break;
+        swap(heapArr[i], heapArr[m]); i = m;
+    }
+    return true;
+}
+
+string readWord(const string& p) { cout << p; string s; cin >> s; return s; }
+
+int main() {
+    int ch;
+    do {
+        cout << "\n=== FILE & FOLDER MANAGER ===\n1.Create Folder\n2.Delete Folder\n3.Display Directory (Preorder)\n"
+                "4.Directory Postorder\n5.Directory Level-order\n6.Create File\n7.Delete File\n8.Search File\n"
+                "9.File Traversals in Folder\n10.Add Priority Task\n11.Run Highest Priority Task\n0.Exit\nChoice: ";
+        cin >> ch;
+        switch (ch) {
+            case 1: { string par = readWord("Parent folder: "), nm = readWord("New folder name: ");
+                      Folder* p = findFolder(root, par);
+                      if (!p) cout << "Parent not found.\n";
+                      else if (findFolder(root, nm)) cout << "Folder name already exists.\n";
+                      else { p->kids.push_back(new Folder(nm)); cout << "Created.\n"; } break; }
+            case 2: { string nm = readWord("Folder to delete: ");
+                      if (nm == "root") cout << "Cannot delete root.\n";
+                      else cout << (removeFolder(root, nm) ? "Deleted.\n" : "Not found.\n"); break; }
+            case 3: dirPreorder(root, 0); break;
+            case 4: dirPostorder(root); cout << "\n"; break;
+            case 5: dirLevel(root); cout << "\n"; break;
+            case 6: { string fo = readWord("Folder: "); Folder* f = findFolder(root, fo);
+                      if (!f) { cout << "Folder not found.\n"; break; }
+                      string fn = readWord("File name: "); int sz; cout << "Size (KB): "; cin >> sz;
+                      f->files = insertFile(f->files, fn, sz); break; }
+            case 7: { string fo = readWord("Folder: "); Folder* f = findFolder(root, fo);
+                      if (!f) { cout << "Folder not found.\n"; break; }
+                      f->files = deleteFile(f->files, readWord("File name: ")); break; }
+            case 8: { string fo = readWord("Folder: "); Folder* f = findFolder(root, fo);
+                      if (!f) { cout << "Folder not found.\n"; break; }
+                      FNode* x = searchFile(f->files, readWord("File name: "));
+                      if (x) cout << "Found: " << x->name << " (" << x->size << " KB)\n"; else cout << "File not found.\n"; break; }
+            case 9: { string fo = readWord("Folder: "); Folder* f = findFolder(root, fo);
+                      if (!f) { cout << "Folder not found.\n"; break; }
+                      cout << "Preorder : "; preorder(f->files);
+                      cout << "\nInorder  : "; inorder(f->files);
+                      cout << "\nPostorder: "; postorder(f->files);
+                      cout << "\nLevel    : "; levelorder(f->files); cout << "\n"; break; }
+            case 10: { Task t; t.name = readWord("Task name: "); cout << "Priority (higher = urgent): "; cin >> t.pr; pushTask(t); break; }
+            case 11: { Task t; if (popTask(t)) cout << "Running: " << t.name << " (priority " << t.pr << ")\n";
+                       else cout << "No tasks.\n"; break; }
+        }
+    } while (ch != 0);
+    return 0;
+}
