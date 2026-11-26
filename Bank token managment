@@ -1,0 +1,58 @@
+// Assignment 6: Bank Token Management System
+// Queue (FIFO) + Priority Queue (senior/differently-abled) + Stack (served history)
+#include <iostream>
+#include <queue>
+#include <stack>
+#include <string>
+using namespace std;
+
+struct Customer { int token; string name; bool priority; };
+queue<Customer> regularQ, priorityQ;
+stack<Customer> served;
+int nextToken = 1;
+
+string readLine(const string& p) { cout << p; string s; getline(cin >> ws, s); return s; }
+
+void issueToken() {
+    Customer c; c.token = nextToken++;
+    c.name = readLine("Customer name: ");
+    char ch; cout << "Senior citizen / Differently-abled? (y/n): "; cin >> ch;
+    c.priority = (ch == 'y' || ch == 'Y');
+    (c.priority ? priorityQ : regularQ).push(c);
+    cout << "Token T" << c.token << (c.priority ? " [PRIORITY]" : "") << " issued to " << c.name << "\n";
+}
+void serveNext() {
+    Customer c;
+    if (!priorityQ.empty()) { c = priorityQ.front(); priorityQ.pop(); }
+    else if (!regularQ.empty()) { c = regularQ.front(); regularQ.pop(); }
+    else { cout << "No customers waiting.\n"; return; }
+    cout << "Now serving T" << c.token << " - " << c.name << "\n";
+    served.push(c);
+}
+void showWaiting() {
+    cout << "Priority waiting: " << priorityQ.size() << " | Regular waiting: " << regularQ.size() << "\n";
+    if (!priorityQ.empty()) cout << "Next priority: T" << priorityQ.front().token << "\n";
+    if (!regularQ.empty()) cout << "Next regular: T" << regularQ.front().token << "\n";
+}
+void showHistory() {
+    if (served.empty()) { cout << "No customers served yet.\n"; return; }
+    stack<Customer> t = served;
+    cout << "--- Recently served (latest first) ---\n";
+    while (!t.empty()) { cout << "T" << t.top().token << " " << t.top().name << "\n"; t.pop(); }
+}
+
+int main() {
+    int ch;
+    do {
+        cout << "\n=== BANK TOKEN SYSTEM ===\n1.Issue Token\n2.Serve Next\n3.Waiting Status\n"
+                "4.Served History\n0.Exit\nChoice: ";
+        cin >> ch;
+        switch (ch) {
+            case 1: issueToken(); break;
+            case 2: serveNext(); break;
+            case 3: showWaiting(); break;
+            case 4: showHistory(); break;
+        }
+    } while (ch != 0);
+    return 0;
+}
