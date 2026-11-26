@@ -1,0 +1,85 @@
+// Assignment 4: Smart Customer Service & Call Management System
+// Queue (normal calls) + Priority Queue (urgent) + Stack (history) + Recursion (IVR)
+#include <iostream>
+#include <queue>
+#include <stack>
+#include <vector>
+#include <string>
+using namespace std;
+
+struct Request { int id; string customer, issue; int urgency; };
+struct Cmp {                            // higher urgency first, then earlier id
+    bool operator()(const Request& a, const Request& b) {
+        if (a.urgency != b.urgency) return a.urgency < b.urgency;
+        return a.id > b.id;
+    }
+};
+queue<Request> normalQ;
+priority_queue<Request, vector<Request>, Cmp> urgentQ;
+stack<Request> history;
+int nextId = 1;
+
+string readLine(const string& p) { cout << p; string s; getline(cin >> ws, s); return s; }
+
+// ---- IVR menu tree navigated recursively ----
+struct Menu { string title; vector<Menu> sub; };
+void navigate(const Menu& m) {
+    if (m.sub.empty()) { cout << ">> Connecting you to an agent for: " << m.title << "\n"; return; }
+    int c;
+    do {
+        cout << "\n[IVR] " << m.title << "\n";
+        for (size_t i = 0; i < m.sub.size(); i++) cout << " " << i + 1 << ". " << m.sub[i].title << "\n";
+        cout << " 0. Back/Exit\nPress: ";
+        cin >> c;
+        if (c >= 1 && c <= (int)m.sub.size()) { navigate(m.sub[c - 1]); return; }  // recursive call
+    } while (c != 0);
+}
+
+void addNormal() {
+    Request r; r.id = nextId++;
+    r.customer = readLine("Customer name: "); r.issue = readLine("Issue: "); r.urgency = 0;
+    normalQ.push(r); cout << "Call #" << r.id << " queued.\n";
+}
+void addUrgent() {
+    Request r; r.id = nextId++;
+    r.customer = readLine("Customer name: "); r.issue = readLine("Issue: ");
+    cout << "Urgency (1-10): "; cin >> r.urgency;
+    urgentQ.push(r); cout << "Urgent request #" << r.id << " added.\n";
+}
+void serve() {
+    Request r;
+    if (!urgentQ.empty()) { r = urgentQ.top(); urgentQ.pop(); }
+    else if (!normalQ.empty()) { r = normalQ.front(); normalQ.pop(); }
+    else { cout << "No pending requests.\n"; return; }
+    cout << "Resolved #" << r.id << " - " << r.customer << " (" << r.issue << ")\n";
+    history.push(r);
+}
+void showHistory() {
+    if (history.empty()) { cout << "No history.\n"; return; }
+    stack<Request> t = history;
+    cout << "--- Recently resolved (latest first) ---\n";
+    while (!t.empty()) { cout << "#" << t.top().id << " " << t.top().customer << " - " << t.top().issue << "\n"; t.pop(); }
+}
+
+int main() {
+    Menu root{"Main Menu", {
+        {"Billing", {{"Check Balance", {}}, {"Pay Bill", {}}}},
+        {"Technical Support", {{"Internet Issue", {}}, {"Device Issue", {}}}},
+        {"Account Services", {{"Update Details", {}}, {"Close Account", {}}}}
+    }};
+    int ch;
+    do {
+        cout << "\n=== CUSTOMER SERVICE ===\n1.New Normal Call\n2.New Urgent Request\n3.Serve Next\n"
+                "4.Pending Count\n5.Resolved History\n6.IVR System\n0.Exit\nChoice: ";
+        cin >> ch;
+        switch (ch) {
+            case 1: addNormal(); break;
+            case 2: addUrgent(); break;
+            case 3: serve(); break;
+            case 4: cout << "Normal: " << normalQ.size() << ", Urgent: " << urgentQ.size() << "\n"; break;
+            case 5: showHistory(); break;
+            case 6: navigate(root); break;
+        }
+    } while (ch != 0);
+    return 0;
+}
