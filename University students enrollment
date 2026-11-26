@@ -1,0 +1,103 @@
+// Assignment 9: University Student Registration & Course Enrollment System
+// Linked List (records) + Hash Table with Chaining (lookup by Roll Number)
+#include <iostream>
+#include <string>
+#include <vector>
+#include <list>
+#include <algorithm>
+using namespace std;
+
+struct Student { int roll; string name, program; vector<string> courses; Student* next; };
+const int SIZE = 7;
+Student* head = nullptr;
+list<Student*> table[SIZE];
+
+string readLine(const string& p) { cout << p; string s; getline(cin >> ws, s); return s; }
+int hashFn(int r) { return r % SIZE; }
+
+Student* lookup(int r) {
+    for (Student* s : table[hashFn(r)]) if (s->roll == r) return s;
+    return nullptr;
+}
+void registerStudent() {
+    Student* s = new Student; cout << "Roll No: "; cin >> s->roll;
+    if (lookup(s->roll)) { cout << "Roll already exists!\n"; delete s; return; }
+    s->name = readLine("Name: "); s->program = readLine("Program: "); s->next = nullptr;
+    if (!head) head = s; else { Student* t = head; while (t->next) t = t->next; t->next = s; }
+    int k = hashFn(s->roll);
+    if (!table[k].empty()) cout << "(Collision at index " << k << " -> chained)\n";
+    table[k].push_back(s);
+    cout << "Student registered.\n";
+}
+void updateStudent() {
+    int r; cout << "Roll No: "; cin >> r;
+    Student* s = lookup(r);
+    if (!s) { cout << "Not found.\n"; return; }
+    s->name = readLine("New Name: "); s->program = readLine("New Program: ");
+}
+void enroll() {
+    int r; cout << "Roll No: "; cin >> r;
+    Student* s = lookup(r);
+    if (!s) { cout << "Not found.\n"; return; }
+    string c = readLine("Course: ");
+    if (find(s->courses.begin(), s->courses.end(), c) != s->courses.end()) { cout << "Already enrolled.\n"; return; }
+    s->courses.push_back(c); cout << "Enrolled in " << c << ".\n";
+}
+void withdraw() {
+    int r; cout << "Roll No: "; cin >> r;
+    Student* s = lookup(r);
+    if (!s) { cout << "Not found.\n"; return; }
+    string c = readLine("Course: ");
+    auto it = find(s->courses.begin(), s->courses.end(), c);
+    if (it == s->courses.end()) { cout << "Not enrolled in that course.\n"; return; }
+    s->courses.erase(it); cout << "Withdrawn from " << c << ".\n";
+}
+void removeStudent() {
+    int r; cout << "Roll No: "; cin >> r;
+    Student *cur = head, *prev = nullptr;
+    while (cur && cur->roll != r) { prev = cur; cur = cur->next; }
+    if (!cur) { cout << "Not found.\n"; return; }
+    if (prev) prev->next = cur->next; else head = cur->next;
+    table[hashFn(r)].remove(cur);
+    delete cur;
+    cout << "Student record removed.\n";
+}
+void show(Student* s) {
+    cout << s->roll << " | " << s->name << " | " << s->program << " | Courses: ";
+    if (s->courses.empty()) cout << "None";
+    for (auto& c : s->courses) cout << c << "; ";
+    cout << "\n";
+}
+void displayAll() {
+    if (!head) { cout << "No students.\n"; return; }
+    for (Student* t = head; t; t = t->next) show(t);
+}
+void showTable() {
+    for (int i = 0; i < SIZE; i++) {
+        cout << i << ": ";
+        for (Student* s : table[i]) cout << s->roll << " -> ";
+        cout << "NULL\n";
+    }
+}
+
+int main() {
+    int ch;
+    do {
+        cout << "\n=== UNIVERSITY REGISTRATION ===\n1.Register Student\n2.Update Student\n3.Enroll in Course\n"
+                "4.Withdraw from Course\n5.Remove Student\n6.Display All\n7.Search by Roll (Hash)\n"
+                "8.Show Hash Table\n0.Exit\nChoice: ";
+        cin >> ch;
+        switch (ch) {
+            case 1: registerStudent(); break;
+            case 2: updateStudent(); break;
+            case 3: enroll(); break;
+            case 4: withdraw(); break;
+            case 5: removeStudent(); break;
+            case 6: displayAll(); break;
+            case 7: { int r; cout << "Roll: "; cin >> r; Student* s = lookup(r);
+                      if (s) show(s); else cout << "Not found.\n"; break; }
+            case 8: showTable(); break;
+        }
+    } while (ch != 0);
+    return 0;
+}
