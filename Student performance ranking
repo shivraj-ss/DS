@@ -1,0 +1,98 @@
+// Assignment 2: Student Performance & Ranking Management System (Arrays, Searching, Sorting)
+#include <iostream>
+#include <string>
+using namespace std;
+
+struct Student { int roll; string name, program; float marks; };
+const int MAX = 100;
+Student s[MAX];
+int n = 0;
+
+string readLine(const string& p) { cout << p; string x; getline(cin >> ws, x); return x; }
+
+void bubbleSortRoll() {
+    for (int i = 0; i < n - 1; i++)
+        for (int j = 0; j < n - i - 1; j++)
+            if (s[j].roll > s[j + 1].roll) swap(s[j], s[j + 1]);
+}
+void selectionSortName() {
+    for (int i = 0; i < n - 1; i++) {
+        int m = i;
+        for (int j = i + 1; j < n; j++) if (s[j].name < s[m].name) m = j;
+        swap(s[i], s[m]);
+    }
+}
+void insertionSortMarksDesc() {         // Merit list
+    for (int i = 1; i < n; i++) {
+        Student k = s[i]; int j = i - 1;
+        while (j >= 0 && s[j].marks < k.marks) { s[j + 1] = s[j]; j--; }
+        s[j + 1] = k;
+    }
+}
+int linearSearch(int r) { for (int i = 0; i < n; i++) if (s[i].roll == r) return i; return -1; }
+int binarySearch(int r) {
+    bubbleSortRoll();
+    int l = 0, h = n - 1;
+    while (l <= h) {
+        int m = (l + h) / 2;
+        if (s[m].roll == r) return m;
+        if (s[m].roll < r) l = m + 1; else h = m - 1;
+    }
+    return -1;
+}
+void show(const Student& x) {
+    cout << x.roll << " | " << x.name << " | " << x.program << " | " << x.marks << "\n";
+}
+void display() {
+    if (!n) { cout << "No records.\n"; return; }
+    cout << "Roll | Name | Program | Marks\n";
+    for (int i = 0; i < n; i++) show(s[i]);
+}
+void addStudent() {
+    if (n == MAX) { cout << "Full!\n"; return; }
+    Student x; cout << "Roll No: "; cin >> x.roll;
+    if (linearSearch(x.roll) != -1) { cout << "Roll already exists!\n"; return; }
+    x.name = readLine("Name: ");
+    x.program = readLine("Program: ");
+    cout << "Marks: "; cin >> x.marks;
+    s[n++] = x;
+}
+void updateStudent() {
+    int r; cout << "Roll No: "; cin >> r;
+    int i = linearSearch(r);
+    if (i == -1) { cout << "Not found.\n"; return; }
+    s[i].name = readLine("New Name: ");
+    s[i].program = readLine("New Program: ");
+    cout << "New Marks: "; cin >> s[i].marks;
+}
+void deleteStudent() {
+    int r; cout << "Roll No: "; cin >> r;
+    int i = linearSearch(r);
+    if (i == -1) { cout << "Not found.\n"; return; }
+    for (int j = i; j < n - 1; j++) s[j] = s[j + 1];
+    n--;
+}
+
+int main() {
+    int ch;
+    do {
+        cout << "\n=== STUDENT PERFORMANCE SYSTEM ===\n1.Add\n2.Update\n3.Delete\n4.Display\n"
+                "5.Linear Search by Roll\n6.Binary Search by Roll\n7.Sort by Roll (Bubble)\n"
+                "8.Sort by Name (Selection)\n9.Merit List by Marks (Insertion)\n0.Exit\nChoice: ";
+        cin >> ch;
+        switch (ch) {
+            case 1: addStudent(); break;
+            case 2: updateStudent(); break;
+            case 3: deleteStudent(); break;
+            case 4: display(); break;
+            case 5: { int r; cout << "Roll: "; cin >> r; int i = linearSearch(r);
+                      if (i == -1) cout << "Not found.\n"; else show(s[i]); break; }
+            case 6: { int r; cout << "Roll: "; cin >> r; int i = binarySearch(r);
+                      if (i == -1) cout << "Not found.\n"; else show(s[i]); break; }
+            case 7: bubbleSortRoll(); display(); break;
+            case 8: selectionSortName(); display(); break;
+            case 9: insertionSortMarksDesc(); display(); break;
+        }
+    } while (ch != 0);
+    return 0;
+}
