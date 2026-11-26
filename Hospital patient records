@@ -1,0 +1,91 @@
+// Assignment 7: Smart Hospital Patient Record Management System
+// Singly Linked List (records) + Hash Table with Chaining (fast lookup by Patient ID)
+#include <iostream>
+#include <string>
+using namespace std;
+
+struct Patient { int id; string name; int age; string disease; Patient* next; };
+struct HNode { int id; Patient* rec; HNode* next; };
+const int SIZE = 10;
+Patient* head = nullptr;
+HNode* table[SIZE] = {nullptr};
+
+string readLine(const string& p) { cout << p; string s; getline(cin >> ws, s); return s; }
+int hashFn(int id) { return id % SIZE; }
+
+Patient* lookup(int id) {                       // O(1) average via hash table
+    for (HNode* h = table[hashFn(id)]; h; h = h->next) if (h->id == id) return h->rec;
+    return nullptr;
+}
+void hashInsert(Patient* p) {                   // collision resolved by chaining
+    int k = hashFn(p->id);
+    if (table[k]) cout << "(Collision at index " << k << " -> chained)\n";
+    table[k] = new HNode{p->id, p, table[k]};
+}
+void hashRemove(int id) {
+    int k = hashFn(id);
+    HNode *cur = table[k], *prev = nullptr;
+    while (cur && cur->id != id) { prev = cur; cur = cur->next; }
+    if (!cur) return;
+    if (prev) prev->next = cur->next; else table[k] = cur->next;
+    delete cur;
+}
+void registerPatient() {
+    Patient* p = new Patient; cout << "Patient ID: "; cin >> p->id;
+    if (lookup(p->id)) { cout << "ID already exists!\n"; delete p; return; }
+    p->name = readLine("Name: "); cout << "Age: "; cin >> p->age;
+    p->disease = readLine("Disease: "); p->next = nullptr;
+    if (!head) head = p; else { Patient* t = head; while (t->next) t = t->next; t->next = p; }
+    hashInsert(p);
+    cout << "Patient registered.\n";
+}
+void updatePatient() {
+    int id; cout << "Patient ID: "; cin >> id;
+    Patient* p = lookup(id);
+    if (!p) { cout << "Not found.\n"; return; }
+    p->name = readLine("New Name: "); cout << "New Age: "; cin >> p->age;
+    p->disease = readLine("New Disease: ");
+    cout << "Updated.\n";
+}
+void dischargePatient() {
+    int id; cout << "Patient ID: "; cin >> id;
+    Patient *cur = head, *prev = nullptr;
+    while (cur && cur->id != id) { prev = cur; cur = cur->next; }
+    if (!cur) { cout << "Not found.\n"; return; }
+    if (prev) prev->next = cur->next; else head = cur->next;
+    hashRemove(id);
+    delete cur;
+    cout << "Patient discharged.\n";
+}
+void displayAll() {
+    if (!head) { cout << "No patients.\n"; return; }
+    for (Patient* t = head; t; t = t->next)
+        cout << t->id << " | " << t->name << " | " << t->age << " | " << t->disease << "\n";
+}
+void showHashTable() {
+    for (int i = 0; i < SIZE; i++) {
+        cout << i << ": ";
+        for (HNode* h = table[i]; h; h = h->next) cout << h->id << " -> ";
+        cout << "NULL\n";
+    }
+}
+
+int main() {
+    int ch;
+    do {
+        cout << "\n=== HOSPITAL RECORDS ===\n1.Register Patient\n2.Update Patient\n3.Discharge Patient\n"
+                "4.Display All\n5.Search by ID (Hash)\n6.Show Hash Table\n0.Exit\nChoice: ";
+        cin >> ch;
+        switch (ch) {
+            case 1: registerPatient(); break;
+            case 2: updatePatient(); break;
+            case 3: dischargePatient(); break;
+            case 4: displayAll(); break;
+            case 5: { int id; cout << "ID: "; cin >> id; Patient* p = lookup(id);
+                      if (p) cout << p->id << " | " << p->name << " | " << p->age << " | " << p->disease << "\n";
+                      else cout << "Not found.\n"; break; }
+            case 6: showHashTable(); break;
+        }
+    } while (ch != 0);
+    return 0;
+}
