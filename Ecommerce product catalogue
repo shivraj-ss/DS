@@ -1,0 +1,105 @@
+// Assignment 8: E-Commerce Product Catalog & Inventory System
+// Linked List (catalog) + Hash Table with Open Addressing (Linear Probing)
+#include <iostream>
+#include <string>
+using namespace std;
+
+struct Product { int id; string name; float price; int stock; Product* next; };
+struct Slot { int id; Product* rec; int state; };   // 0 = empty, 1 = occupied, 2 = deleted
+const int SIZE = 11;
+Product* head = nullptr;
+Slot table[SIZE];
+int count = 0;
+
+string readLine(const string& p) { cout << p; string s; getline(cin >> ws, s); return s; }
+int hashFn(int id) { return id % SIZE; }
+
+Product* lookup(int id) {
+    int k = hashFn(id);
+    for (int i = 0; i < SIZE; i++) {
+        int idx = (k + i) % SIZE;
+        if (table[idx].state == 0) return nullptr;
+        if (table[idx].state == 1 && table[idx].id == id) return table[idx].rec;
+    }
+    return nullptr;
+}
+bool hashInsert(Product* p) {
+    if (count == SIZE) return false;
+    int k = hashFn(p->id);
+    for (int i = 0; i < SIZE; i++) {
+        int idx = (k + i) % SIZE;
+        if (table[idx].state != 1) {
+            if (i > 0) cout << "(Collision -> probed to index " << idx << ")\n";
+            table[idx] = {p->id, p, 1}; count++; return true;
+        }
+    }
+    return false;
+}
+void hashRemove(int id) {
+    int k = hashFn(id);
+    for (int i = 0; i < SIZE; i++) {
+        int idx = (k + i) % SIZE;
+        if (table[idx].state == 0) return;
+        if (table[idx].state == 1 && table[idx].id == id) { table[idx].state = 2; count--; return; }
+    }
+}
+void addProduct() {
+    if (count == SIZE) { cout << "Hash table full!\n"; return; }
+    Product* p = new Product; cout << "Product ID: "; cin >> p->id;
+    if (lookup(p->id)) { cout << "ID exists!\n"; delete p; return; }
+    p->name = readLine("Name: "); cout << "Price: "; cin >> p->price;
+    cout << "Stock: "; cin >> p->stock; p->next = nullptr;
+    if (!head) head = p; else { Product* t = head; while (t->next) t = t->next; t->next = p; }
+    hashInsert(p);
+    cout << "Product added.\n";
+}
+void updateProduct() {
+    int id; cout << "Product ID: "; cin >> id;
+    Product* p = lookup(id);
+    if (!p) { cout << "Not found.\n"; return; }
+    p->name = readLine("New Name: "); cout << "New Price: "; cin >> p->price;
+    cout << "New Stock: "; cin >> p->stock;
+}
+void removeProduct() {
+    int id; cout << "Product ID: "; cin >> id;
+    Product *cur = head, *prev = nullptr;
+    while (cur && cur->id != id) { prev = cur; cur = cur->next; }
+    if (!cur) { cout << "Not found.\n"; return; }
+    if (prev) prev->next = cur->next; else head = cur->next;
+    hashRemove(id); delete cur;
+    cout << "Product removed.\n";
+}
+void displayAll() {
+    if (!head) { cout << "Catalog empty.\n"; return; }
+    for (Product* t = head; t; t = t->next)
+        cout << t->id << " | " << t->name << " | Rs." << t->price << " | Stock: " << t->stock << "\n";
+}
+void showTable() {
+    for (int i = 0; i < SIZE; i++) {
+        cout << i << ": ";
+        if (table[i].state == 1) cout << table[i].id;
+        else if (table[i].state == 2) cout << "[deleted]";
+        else cout << "-";
+        cout << "\n";
+    }
+}
+
+int main() {
+    int ch;
+    do {
+        cout << "\n=== E-COMMERCE CATALOG ===\n1.Add Product\n2.Update Product\n3.Remove Product\n"
+                "4.Display All\n5.Search by ID (Hash)\n6.Show Hash Table\n0.Exit\nChoice: ";
+        cin >> ch;
+        switch (ch) {
+            case 1: addProduct(); break;
+            case 2: updateProduct(); break;
+            case 3: removeProduct(); break;
+            case 4: displayAll(); break;
+            case 5: { int id; cout << "ID: "; cin >> id; Product* p = lookup(id);
+                      if (p) cout << p->id << " | " << p->name << " | Rs." << p->price << " | Stock: " << p->stock << "\n";
+                      else cout << "Not found.\n"; break; }
+            case 6: showTable(); break;
+        }
+    } while (ch != 0);
+    return 0;
+}
