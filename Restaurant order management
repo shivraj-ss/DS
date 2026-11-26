@@ -1,0 +1,90 @@
+// Assignment 5: Smart Restaurant Order Management System
+// Queue (regular) + VIP Queue (priority) + Stack (cancelled history) + Recursive menu
+#include <iostream>
+#include <queue>
+#include <stack>
+#include <vector>
+#include <string>
+using namespace std;
+
+struct Order { int id; string customer, item; bool vip; };
+queue<Order> regularQ, vipQ;
+stack<Order> cancelled;
+int nextId = 1;
+
+string readLine(const string& p) { cout << p; string s; getline(cin >> ws, s); return s; }
+
+struct Menu { string title; vector<Menu> sub; };
+void browse(const Menu& m) {
+    if (m.sub.empty()) { cout << ">> Selected: " << m.title << "\n"; return; }
+    int c;
+    do {
+        cout << "\n[MENU] " << m.title << "\n";
+        for (size_t i = 0; i < m.sub.size(); i++) cout << " " << i + 1 << ". " << m.sub[i].title << "\n";
+        cout << " 0. Back\nChoice: ";
+        cin >> c;
+        if (c >= 1 && c <= (int)m.sub.size()) { browse(m.sub[c - 1]); return; }   // recursion
+    } while (c != 0);
+}
+
+void placeOrder() {
+    Order o; o.id = nextId++;
+    o.customer = readLine("Customer: "); o.item = readLine("Item: ");
+    char v; cout << "VIP? (y/n): "; cin >> v; o.vip = (v == 'y' || v == 'Y');
+    (o.vip ? vipQ : regularQ).push(o);
+    cout << "Order #" << o.id << (o.vip ? " (VIP)" : "") << " placed.\n";
+}
+void serveOrder() {
+    Order o;
+    if (!vipQ.empty()) { o = vipQ.front(); vipQ.pop(); }
+    else if (!regularQ.empty()) { o = regularQ.front(); regularQ.pop(); }
+    else { cout << "No orders.\n"; return; }
+    cout << "Serving #" << o.id << ": " << o.item << " for " << o.customer << "\n";
+}
+bool removeFrom(queue<Order>& q, int id, Order& found) {
+    bool ok = false; int sz = q.size();
+    while (sz--) {
+        Order o = q.front(); q.pop();
+        if (o.id == id && !ok) { found = o; ok = true; } else q.push(o);
+    }
+    return ok;
+}
+void cancelOrder() {
+    int id; cout << "Order ID to cancel: "; cin >> id;
+    Order o;
+    if (removeFrom(vipQ, id, o) || removeFrom(regularQ, id, o)) {
+        cancelled.push(o); cout << "Order #" << id << " cancelled.\n";
+    } else cout << "Order not found.\n";
+}
+void showCancelled() {
+    if (cancelled.empty()) { cout << "No cancelled orders.\n"; return; }
+    stack<Order> t = cancelled;
+    while (!t.empty()) { cout << "#" << t.top().id << " " << t.top().item << " (" << t.top().customer << ")\n"; t.pop(); }
+}
+void showPending() {
+    cout << "VIP pending: " << vipQ.size() << " | Regular pending: " << regularQ.size() << "\n";
+}
+
+int main() {
+    Menu root{"Restaurant Menu", {
+        {"Starters", {{"Soup", {}}, {"Spring Rolls", {}}}},
+        {"Main Course", {{"Veg", {{"Paneer Butter Masala", {}}, {"Dal Tadka", {}}}}, {"Non-Veg", {{"Butter Chicken", {}}, {"Fish Curry", {}}}}}},
+        {"Desserts", {{"Ice Cream", {}}, {"Gulab Jamun", {}}}}
+    }};
+    int ch;
+    do {
+        cout << "\n=== RESTAURANT ORDERS ===\n1.Place Order\n2.Serve Next Order\n3.Cancel Order\n"
+                "4.Cancelled History\n5.Pending Orders\n6.Browse Menu\n0.Exit\nChoice: ";
+        cin >> ch;
+        switch (ch) {
+            case 1: placeOrder(); break;
+            case 2: serveOrder(); break;
+            case 3: cancelOrder(); break;
+            case 4: showCancelled(); break;
+            case 5: showPending(); break;
+            case 6: browse(root); break;
+        }
+    } while (ch != 0);
+    return 0;
+}
+
